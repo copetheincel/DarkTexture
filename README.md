@@ -1,5 +1,5 @@
--- DARK TEXTURE FULL + REMOVE TEXTURES + SKY ORIGINAL
--- sem hitbox, sem travar horário
+-- DARK TEXTURE + REMOVE TEXTURES + SKY ORIGINAL + FULLBRIGHT LEGIT
+-- sem hitbox, leve e permanente
 
 local Lighting = game:GetService("Lighting")
 local Terrain = workspace:FindFirstChildOfClass("Terrain")
@@ -8,6 +8,37 @@ local Terrain = workspace:FindFirstChildOfClass("Terrain")
 -- CONFIG DARK TEXTURE
 ---------------------------------------------------
 local DARKNESS = 0.18
+
+---------------------------------------------------
+-- FULL BRIGHT CONFIG
+---------------------------------------------------
+local function setFullBright()
+	Lighting.Brightness = 3
+	Lighting.ClockTime = 14
+	Lighting.FogEnd = 100000
+	Lighting.GlobalShadows = false
+	Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
+	Lighting.Ambient = Color3.fromRGB(255, 255, 255)
+
+	-- remove efeitos que deixam escuro
+	for _, v in ipairs(Lighting:GetChildren()) do
+		if v:IsA("ColorCorrectionEffect")
+		or v:IsA("BloomEffect")
+		or v:IsA("DepthOfFieldEffect")
+		or v:IsA("SunRaysEffect")
+		or v:IsA("Atmosphere") then
+			v:Destroy()
+		end
+	end
+end
+
+-- aplica fullbright inicial
+setFullBright()
+
+-- reaplica caso o jogo tente mudar
+for _, prop in ipairs({"Brightness","ClockTime","FogEnd","Ambient","OutdoorAmbient","GlobalShadows"}) do
+	Lighting:GetPropertyChangedSignal(prop):Connect(setFullBright)
+end
 
 ---------------------------------------------------
 -- FUNÇÕES DARK
@@ -108,4 +139,4 @@ workspace.DescendantAdded:Connect(function(v)
 	applyDark(v)
 end)
 
-print("Dark Texture FULL + Remove Textures + Skybox Original aplicado.")
+print("FULLBRIGHT LEGIT + Dark Texture + Remove Textures + Sky Original aplicado.")
