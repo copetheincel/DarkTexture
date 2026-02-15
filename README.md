@@ -1,20 +1,16 @@
--- DARK TEXTURE FULL + REMOVE TEXTURES + SKYBOX ORIGINAL + MIDDAY FIXO
--- pega tudo (chão, paredes, terrain, decals, textures)
--- não mexe em players/npcs
--- sem piscar e sem precisar executar 2x
+-- DARK TEXTURE FULL + REMOVE TEXTURES + SKY ORIGINAL
+-- sem hitbox, sem travar horário
 
-local Players = game:GetService("Players")
 local Lighting = game:GetService("Lighting")
 local Terrain = workspace:FindFirstChildOfClass("Terrain")
 
 ---------------------------------------------------
--- CONFIG
+-- CONFIG DARK TEXTURE
 ---------------------------------------------------
 local DARKNESS = 0.18
-local FIXED_TIME = 13.0
 
 ---------------------------------------------------
--- FUNÇÕES
+-- FUNÇÕES DARK
 ---------------------------------------------------
 local function darkenColor(color)
 	return Color3.new(
@@ -31,17 +27,6 @@ local function isCharacter(obj)
 	end
 	return false
 end
-
----------------------------------------------------
--- FIXAR HORÁRIO EM 13:00 (SEM LOOP)
----------------------------------------------------
-Lighting.ClockTime = FIXED_TIME
-
-Lighting:GetPropertyChangedSignal("ClockTime"):Connect(function()
-	if Lighting.ClockTime ~= FIXED_TIME then
-		Lighting.ClockTime = FIXED_TIME
-	end
-end)
 
 ---------------------------------------------------
 -- RESET SKYBOX PRA ORIGINAL DO ROBLOX
@@ -65,12 +50,12 @@ sky.SkyboxUp = "rbxasset://textures/sky/sky512_up.tex"
 sky.Parent = Lighting
 
 ---------------------------------------------------
--- DARK + REMOVE TEXTURES
+-- APPLY DARK + REMOVE TEXTURES
 ---------------------------------------------------
 local function applyDark(obj)
 	if isCharacter(obj) then return end
 
-	-- remove texturas (deixa mais "dark texture")
+	-- remove texturas
 	if obj:IsA("SurfaceAppearance") or obj:IsA("Texture") or obj:IsA("Decal") then
 		obj:Destroy()
 		return
@@ -100,7 +85,7 @@ local function applyDark(obj)
 end
 
 ---------------------------------------------------
--- TERRAIN (CHÃO DO MAPA MESMO)
+-- DARKEN TERRAIN
 ---------------------------------------------------
 if Terrain then
 	for _, mat in ipairs(Enum.Material:GetEnumItems()) do
@@ -112,7 +97,7 @@ if Terrain then
 end
 
 ---------------------------------------------------
--- APLICAR EM TUDO
+-- APPLY DARK EM TUDO
 ---------------------------------------------------
 for _, v in ipairs(workspace:GetDescendants()) do
 	applyDark(v)
@@ -123,4 +108,4 @@ workspace.DescendantAdded:Connect(function(v)
 	applyDark(v)
 end)
 
-print("Dark Texture FULL + Remove Textures + Skybox Original + 13:00 fixo aplicado.")
+print("Dark Texture FULL + Remove Textures + Skybox Original aplicado.")
