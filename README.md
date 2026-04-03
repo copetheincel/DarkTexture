@@ -1,142 +1,94 @@
--- DARK TEXTURE + REMOVE TEXTURES + SKY ORIGINAL + FULLBRIGHT LEGIT
--- sem hitbox, leve e permanente
+local Players = cloneref(game:GetService("Players")) or game:GetService("Players")
+local player = Players.LocalPlayer
 
-local Lighting = game:GetService("Lighting")
-local Terrain = workspace:FindFirstChildOfClass("Terrain")
+local animation = Instance.new("Animation")
+animation.AnimationId = "rbxassetid://68433924"
 
----------------------------------------------------
--- CONFIG DARK TEXTURE
----------------------------------------------------
-local DARKNESS = 0.18
+local activeTrack = nil
+local keepRunning = true
 
----------------------------------------------------
--- FULL BRIGHT CONFIG
----------------------------------------------------
-local function setFullBright()
-	Lighting.Brightness = 3
-	Lighting.ClockTime = 14
-	Lighting.FogEnd = 100000
-	Lighting.GlobalShadows = false
-	Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
-	Lighting.Ambient = Color3.fromRGB(255, 255, 255)
-
-	-- remove efeitos que deixam escuro
-	for _, v in ipairs(Lighting:GetChildren()) do
-		if v:IsA("ColorCorrectionEffect")
-		or v:IsA("BloomEffect")
-		or v:IsA("DepthOfFieldEffect")
-		or v:IsA("SunRaysEffect")
-		or v:IsA("Atmosphere") then
-			v:Destroy()
-		end
-	end
+-- Função que aplica a animação com prioridade máxima
+local function aplicarAnimacao(humanoid)
+    if activeTrack then
+        activeTrack:Stop()
+        activeTrack = nil
+    end
+    
+    if humanoid and humanoid.Parent then
+        local track = humanoid:LoadAnimation(animation)
+        
+        -- PRIORIDADE MÁXIMA (substitui qualquer animação)
+        track.Priority = Enum.AnimationPriority.Action4
+        
+        track:Play()
+        track:AdjustSpeed(0)
+        track:AdjustWeight(10) -- Peso máximo
+        
+        -- Força a animação a se manter ativa
+        track.TimePosition = 0
+        
+        activeTrack = track
+    end
 end
 
--- aplica fullbright inicial
-setFullBright()
-
--- reaplica caso o jogo tente mudar
-for _, prop in ipairs({"Brightness","ClockTime","FogEnd","Ambient","OutdoorAmbient","GlobalShadows"}) do
-	Lighting:GetPropertyChangedSignal(prop):Connect(setFullBright)
+-- Loop que mantém a cabeça pra baixo
+local function manterCabecaBaixa()
+    while keepRunning and player.Character do
+        local character = player.Character
+        local humanoid = character and character:FindFirstChildWhichIsA("Humanoid")
+        
+        if humanoid and humanoid.RigType == Enum.HumanoidRigType.R6 then
+            if not activeTrack or not activeTrack.IsPlaying then
+                aplicarAnimacao(humanoid)
+            else
+                -- Força a posição 0 da animação e reforça peso
+                activeTrack:AdjustWeight(10)
+                activeTrack.TimePosition = 0
+            end
+        end
+        
+        task.wait(0.05) -- Verifica mais rápido
+    end
 end
 
----------------------------------------------------
--- FUNÇÕES DARK
----------------------------------------------------
-local function darkenColor(color)
-	return Color3.new(
-		math.clamp(color.R * DARKNESS, 0, 1),
-		math.clamp(color.G * DARKNESS, 0, 1),
-		math.clamp(color.B * DARKNESS, 0, 1)
-	)
+local function esconderCabeca()
+    local character = player.Character
+    if not character then return end
+    
+    local humanoid = character:FindFirstChildWhichIsA("Humanoid")
+    if not humanoid then return end
+    
+    if humanoid.RigType == Enum.HumanoidRigType.R6 then
+        aplicarAnimacao(humanoid)
+    else
+        local AvatarEditorService = game:GetService("AvatarEditorService")
+        local humanoidDesc = humanoid.HumanoidDescription
+        
+        if humanoidDesc then
+            AvatarEditorService:PromptSaveAvatar(humanoidDesc, Enum.HumanoidRigType.R6)
+            task.wait(2)
+            humanoid.Health = 0
+        end
+    end
 end
 
-local function isCharacter(obj)
-	local model = obj:FindFirstAncestorOfClass("Model")
-	if model and model:FindFirstChildOfClass("Humanoid") then
-		return true
-	end
-	return false
+local function onCharacterAdded(character)
+    task.wait(0.3)
+    keepRunning = true
+    esconderCabeca()
+    task.spawn(manterCabecaBaixa)
 end
 
----------------------------------------------------
--- RESET SKYBOX PRA ORIGINAL DO ROBLOX
----------------------------------------------------
-for _, v in ipairs(Lighting:GetChildren()) do
-	if v:IsA("Sky") then
-		v:Destroy()
-	end
-end
-
-local sky = Instance.new("Sky")
-sky.Name = "OriginalSky"
-
-sky.SkyboxBk = "rbxasset://textures/sky/sky512_bk.tex"
-sky.SkyboxDn = "rbxasset://textures/sky/sky512_dn.tex"
-sky.SkyboxFt = "rbxasset://textures/sky/sky512_ft.tex"
-sky.SkyboxLf = "rbxasset://textures/sky/sky512_lf.tex"
-sky.SkyboxRt = "rbxasset://textures/sky/sky512_rt.tex"
-sky.SkyboxUp = "rbxasset://textures/sky/sky512_up.tex"
-
-sky.Parent = Lighting
-
----------------------------------------------------
--- APPLY DARK + REMOVE TEXTURES
----------------------------------------------------
-local function applyDark(obj)
-	if isCharacter(obj) then return end
-
-	-- remove texturas
-	if obj:IsA("SurfaceAppearance") or obj:IsA("Texture") or obj:IsA("Decal") then
-		obj:Destroy()
-		return
-	end
-
-	-- escurece parts
-	if obj:IsA("BasePart") then
-		if obj.Material == Enum.Material.Neon then return end
-		if obj.Material == Enum.Material.ForceField then return end
-
-		obj.Color = darkenColor(obj.Color)
-
-		pcall(function()
-			obj.Reflectance = 0
-		end)
-	end
-
-	-- escurece partículas / beams / trails
-	if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") then
-		pcall(function()
-			local kp = obj.Color.Keypoints
-			if kp and kp[1] then
-				obj.Color = ColorSequence.new(darkenColor(kp[1].Value))
-			end
-		end)
-	end
-end
-
----------------------------------------------------
--- DARKEN TERRAIN
----------------------------------------------------
-if Terrain then
-	for _, mat in ipairs(Enum.Material:GetEnumItems()) do
-		pcall(function()
-			local original = Terrain:GetMaterialColor(mat)
-			Terrain:SetMaterialColor(mat, darkenColor(original))
-		end)
-	end
-end
-
----------------------------------------------------
--- APPLY DARK EM TUDO
----------------------------------------------------
-for _, v in ipairs(workspace:GetDescendants()) do
-	applyDark(v)
-end
-
-workspace.DescendantAdded:Connect(function(v)
-	task.wait(0.05)
-	applyDark(v)
+player.CharacterRemoving:Connect(function()
+    keepRunning = false
+    if activeTrack then
+        activeTrack:Stop()
+        activeTrack = nil
+    end
 end)
 
-print("FULLBRIGHT LEGIT + Dark Texture + Remove Textures + Sky Original aplicado.")
+player.CharacterAdded:Connect(onCharacterAdded)
+
+if player.Character then
+    onCharacterAdded(player.Character)
+end
